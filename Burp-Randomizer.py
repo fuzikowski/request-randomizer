@@ -18,6 +18,7 @@ from burp import (IBurpExtender, ISessionHandlingAction)
 import re
 import string
 import random
+import uuid
 
 ### Configuration ###
 # Character set of generated tokens
@@ -25,9 +26,11 @@ tokenCharset = string.ascii_letters + string.digits
 # String which is replaced with random token
 placeholder = "#RANDOM#"
 placeholderNum = "#RANDOMNUM#"
+placeholderUuid = "#RANDOMUUID#"
 # Length of generated token. WARNING: length of token must equal length of placeholder due to a bug in Burp 1.5.21 which cuts off requests under certain conditions.
 tokenLength = len(placeholder)
 tokenLengthNum = len(placeholderNum)
+tokenLengthUuid = len(placeholderUuid)
 #####################
 
 
@@ -40,6 +43,7 @@ class BurpExtender(IBurpExtender, ISessionHandlingAction):
         self.out = callbacks.getStdout()
         self.placeholder = re.compile(placeholder)
         self.placeholderNum = re.compile(placeholderNum)
+        self.placeholderUuid = re.compile(placeholderUuid)
         random.seed()
 
     ### ISessionHandlingAction ###
@@ -50,6 +54,8 @@ class BurpExtender(IBurpExtender, ISessionHandlingAction):
         request = self.helpers.bytesToString(currentRequest.getRequest())
         randomToken = "".join([random.choice(tokenCharset) for i in range(tokenLength)])
         randomTokenNum = str(random.randint(10 ** (tokenLengthNum - 1), 10 ** (tokenLengthNum) - 1))
+        randomTokenUuid = str(uuid.uuid4())
         request = self.placeholder.sub(randomToken, request)
+        request = self.placeholderUuid.sub(randomTokenUuid, request)
         result = self.helpers.stringToBytes(self.placeholderNum.sub(randomTokenNum, request))
         currentRequest.setRequest(result)
